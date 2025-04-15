@@ -42,15 +42,15 @@ impl<'a> Run<'a> {
 }
 
 pub struct Parser<'a> {
-    tokens: &'a Vec<Token<'a>>,
+    tokens: Vec<Token<'a>>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token<'a>>) -> Self {
         Parser { tokens }
     }
 
-    pub fn parse(&self) -> Vec<Paragraph> {
+    pub fn parse(&mut self) -> Vec<Paragraph<'a>> {
         let mut tree: Vec<Paragraph> = Vec::new();
         let mut buf = Format {
             bold: false,
@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
         };
         let mut pg = Paragraph::new(Delimiter::New);
 
-        for token in self.tokens {
+        for token in &self.tokens {
             match token {
                 Token::Text(s) => pg.runs.push(Run::new(buf, s)),
                 Token::NewParagraph => {

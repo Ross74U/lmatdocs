@@ -28,7 +28,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
+    pub fn tokenize(&mut self) -> Result<Vec<Token<'a>>, String> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut stack: Vec<Token> = Vec::with_capacity(3);
         let mut back_pos: usize = 0;
@@ -37,7 +37,9 @@ impl<'a> Tokenizer<'a> {
             let ch: char = self._next_ch().expect("no next char");
             if ch == '#' {
                 /* centered paragraph */
-                self._push_buffer(&mut tokens, back_pos, self.pos - 1);
+                if self.pos > 1 {
+                    self._push_buffer(&mut tokens, back_pos, self.pos - 1);
+                }
                 back_pos = self.pos;
                 if self._peek_ch() == Some(' ') {
                     back_pos += 1;
@@ -46,11 +48,13 @@ impl<'a> Tokenizer<'a> {
                     tokens.pop();
                 }
                 tokens.push(Token::NewCentered);
-            } else if ch == '-' {
+            } else if ch == '~' {
                 /* bullet points */
-                let len: usize = self._count_consec('-');
+                let len: usize = self._count_consec('~');
                 back_pos += len;
-                self._push_buffer(&mut tokens, back_pos, self.pos - len - 1);
+                if self.pos > len + 1 {
+                    self._push_buffer(&mut tokens, back_pos, self.pos - len - 1);
+                }
                 back_pos = self.pos;
                 if let Some(Token::NewParagraph) = tokens.last() {
                     tokens.pop();
@@ -59,18 +63,22 @@ impl<'a> Tokenizer<'a> {
                     0 => tokens.push(Token::NewBullet),
                     1 => tokens.push(Token::NewSubBullet),
                     _ => {
-                        return Err("Syntax Error: too many -".to_string());
+                        return Err("Syntax Error: too many ~".to_string());
                     }
                 }
             } else if ch == '\n' {
                 /* default paragraph */
-                self._push_buffer(&mut tokens, back_pos, self.pos - 1);
+                if self.pos > 1 {
+                    self._push_buffer(&mut tokens, back_pos, self.pos - 1);
+                }
                 back_pos = self.pos;
                 tokens.push(Token::NewParagraph);
             } else if ch == '*' {
                 /* bold and italic */
                 let len: usize = self._count_consec('*');
-                self._push_buffer(&mut tokens, back_pos, self.pos - len - 1);
+                if self.pos > len + 1 {
+                    self._push_buffer(&mut tokens, back_pos, self.pos - len - 1);
+                }
                 back_pos = self.pos;
 
                 /* check for opening tokens in the stack */
@@ -113,8 +121,9 @@ impl<'a> Tokenizer<'a> {
                 }
             } else if ch == '_' {
                 /* underlined */
-
-                self._push_buffer(&mut tokens, back_pos, self.pos - 1);
+                if self.pos > 1 {
+                    self._push_buffer(&mut tokens, back_pos, self.pos - 1);
+                }
                 back_pos = self.pos;
 
                 if let Some(Token::BegUnderline) = stack.last() {
